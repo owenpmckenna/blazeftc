@@ -8,8 +8,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 public class BlazeFTC {
-    public static int VERSION_LOADED;
-    static {
+    public static int VERSION_LOADED = -1;
+    public static void load() {
+        if (VERSION_LOADED != -1) {
+            return;
+        }
         try {
             System.loadLibrary("blaze_ftc");
             System.out.println("loaded blaze_ftc!");
@@ -26,14 +29,19 @@ public class BlazeFTC {
             }
         }
     }
-    public static native void openFile(FileDescriptor fd, BlazeTelemetry blazeTelemetry);
-    public static native void write(byte[] bytes);
+
+    /**
+     * order: inform, initialize, write/read
+     */
+    public static native void initialize(BlazeTelemetry blazeTelemetry);
+    public static native void write(byte[] bytes, int connectionNumber);
     public static native void gamepad(byte[] gp1, byte[] gp2);
     public static native int available();
     public static native void run(int toRun);
-    public static native int read(byte[] b, int off, int len);
+    public static native void setMotorPower(int hub, int port, double power);
+    public static native int read(byte[] b, int off, int len, int connectionNumber);//added conn number
     public static native void close();
-    public static native void informOfModule(int module, boolean parent);
+    public static native void informOfModule(int module, boolean parent, FileDescriptor fd);
     public static OutputStream os = null;
     public static InputStream is = null;
     public static void closeStreams() {

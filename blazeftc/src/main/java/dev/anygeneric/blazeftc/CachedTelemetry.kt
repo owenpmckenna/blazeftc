@@ -3,10 +3,11 @@ package dev.anygeneric.blazeftc
 import org.firstinspires.ftc.robotcore.external.Func
 import org.firstinspires.ftc.robotcore.external.Telemetry
 import org.firstinspires.ftc.robotcore.internal.opmode.TelemetryInternal
+import java.util.concurrent.ConcurrentHashMap
 
 class CachedTelemetry(val bt: BlazeFTC.BlazeTelemetry) : Telemetry, TelemetryInternal {
     class Data(val name: String, val removedOnClear: Boolean, val runner: (Telemetry) -> Unit)
-    var data = mutableMapOf<String, Data>()
+    var data = ConcurrentHashMap<String, Data>()
     fun put(caption: String, removedOnClear: Boolean, runner: (Telemetry) -> Unit) {
         data[caption] = Data(caption, removedOnClear, runner)
     }
@@ -57,7 +58,13 @@ class CachedTelemetry(val bt: BlazeFTC.BlazeTelemetry) : Telemetry, TelemetryInt
     }
 
     override fun clear() {
-        data = data.filter { !it.value.removedOnClear }.toMutableMap()
+        /*data.entries.forEach {
+            if (it.value.removedOnClear) {
+                data.remove(it.key)
+            }
+        }*/
+        data.entries.removeIf { it.value.removedOnClear }
+        //data = data.filter { !it.value.removedOnClear }
     }
 
     override fun clearAll() {

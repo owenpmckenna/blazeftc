@@ -71,7 +71,7 @@ publishing {
         create<MavenPublication>("mavenLibrary") {
             groupId = "dev.anygeneric"
             artifactId = "blazeftc"
-            version = "0.1.2"
+            version = "0.1.23"
             description = "https://github.com/owenpmckenna/blaze_ftc"
 
 
@@ -112,6 +112,14 @@ publishing {
 
     repositories {
         mavenLocal()
+        /*maven {
+            name = "sonatype"
+            url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
 
+            credentials {
+                username = findProperty("sonatypeUsername") as String
+                password = findProperty("sonatypePassword") as String
+            }
+        }*/
     }
 }
