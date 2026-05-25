@@ -6,6 +6,9 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.ref.WeakReference;
+import java.util.HashMap;
+import java.util.Map;
 
 public class BlazeFTC {
     public static int VERSION_LOADED = -1;
@@ -36,12 +39,28 @@ public class BlazeFTC {
     public static native void initialize(BlazeTelemetry blazeTelemetry);
     public static native void write(byte[] bytes, int connectionNumber);
     public static native void gamepad(byte[] gp1, byte[] gp2);
+    public static native void sendProperty(String key, String value);
     public static native int available();
     public static native void run(int toRun);
     public static native void setMotorPower(int hub, int port, double power);
     public static native int read(byte[] b, int off, int len, int connectionNumber);//added conn number
     public static native void close();
     public static native void informOfModule(int module, boolean parent, FileDescriptor fd);
+    public interface ByteHandler {
+        byte[] handle(byte[] b);
+    }
+    private static Map<String, ByteHandler> handlerMap = new HashMap<>();
+    public static void setByteHandler(String name, ByteHandler closure) {
+        handlerMap.put(name, closure);
+    }
+    public static void clearByteHandlers() {handlerMap.clear();}
+    public static byte[] sendBytes(String name, byte[] bytes) {
+        ByteHandler bh = handlerMap.get(name);
+        if (bh != null) {
+            return bh.handle(bytes);
+        }
+        return new byte[] {};//empty array idk. probably not the right call
+    }
     public static OutputStream os = null;
     public static InputStream is = null;
     public static void closeStreams() {

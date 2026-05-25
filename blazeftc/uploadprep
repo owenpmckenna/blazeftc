@@ -1,0 +1,7 @@
+for f in *; do
+  [[ -f "$f" && "$f" != *.asc ]] || continue
+  md5sum "$f" | awk '{print $1}' > "$f.md5"
+  sha1sum "$f" | awk '{print $1}' > "$f.sha1"
+done
+
+zip -j artifacts.zip *.jar *.pom *.md5 *.sha1

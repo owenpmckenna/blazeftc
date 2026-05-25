@@ -1,5 +1,6 @@
 package dev.anygeneric.blazeftc
 
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver
 import com.qualcomm.hardware.lynx.LynxModule
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
 import com.qualcomm.robotcore.hardware.DcMotorEx
@@ -8,6 +9,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.VoltageUnit
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.absoluteValue
+import kotlin.random.Random
 
 abstract class DummyPlugOpMode : LinearOpMode() {
     private var opened = AtomicBoolean(false)
@@ -16,6 +19,9 @@ abstract class DummyPlugOpMode : LinearOpMode() {
         private var outUsed = false
         private var inUsed = false
         private var timesRespondedLargeNumber = 0
+    }
+    fun sendPropertyToRust(key: String, value: String) {
+        BlazeFTC.sendProperty(key, value);
     }
     private fun getClosures(accessor: InterfaceAccessor, hwNum: Int): Pair<FileInputStream, FileOutputStream> {
         //hwNum is ignored except for when there's an RS485 Ex Hub. otherwise it *does not* matter
@@ -72,6 +78,23 @@ abstract class DummyPlugOpMode : LinearOpMode() {
             //hardwareMap.put(m, motor)
 
             hardwareMap.dcMotor.put(m, motor)
+        }
+    }
+
+    /**
+     * You *must* initialize a java pinpoint driver before calling this to set the settings.
+     * the Driver we take here is unused (later we could extract the bus id and ctrl hub status from it but I'm lazy)
+     */
+    fun engagePinpointAcceleration(ppd: GoBildaPinpointDriver, pinpointOnCtrlHub: Boolean, pinpointBus: Int, acceptor: (PositionData) -> Unit) {
+        val tempId = Random.nextInt().absoluteValue.toString()
+        BlazeFTC.sendProperty("internalPinpointHub", if (pinpointOnCtrlHub) "hub0" else "hub1")
+        BlazeFTC.sendProperty("internalPinpointBus", pinpointBus.toString())
+        BlazeFTC.sendProperty("internalPinpointCallbackName", tempId)
+        BlazeFTC.setByteHandler(tempId) {
+            val tmp = PositionData()
+            tmp.handlePinpointData(it)
+            acceptor(tmp)
+            byteArrayOf(1)
         }
     }
     final fun initializeBlazeFTC(userTelemetry: Telemetry) : Telemetry {
@@ -138,6 +161,7 @@ abstract class DummyPlugOpMode : LinearOpMode() {
     }
     fun closeBlazeFTC() {
         BlazeFTC.close()
+        BlazeFTC.clearByteHandlers()
     }
     fun updateGamepads() {
         BlazeFTC.gamepad(gamepad1.toByteArray(), gamepad2!!.toByteArray())
