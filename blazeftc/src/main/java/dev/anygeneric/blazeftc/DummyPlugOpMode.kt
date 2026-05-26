@@ -176,6 +176,7 @@ abstract class DummyPlugOpMode : LinearOpMode() {
             runOpModeInBlaze()
         } catch (e: Throwable) {
             println("caught $e in BlazeFTC's DPOM")
+            e.printStackTrace()
             throw e
         } finally {
             println("Closing BlazeFTC")
