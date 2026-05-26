@@ -2,7 +2,7 @@
 cd ~/.m2/repository/dev/anygeneric/blazeftc/
 echo "remember to run clean, build, and publish to mvn local"
 echo "and set the version in generate.sh!"
-VERSION=0.1.24
+VERSION=0.1.25
 #generate the signatures of the maven-metadata files
 #find . -type f ! -name '*.asc' ! -name "*.md5" ! -name "*.sha1" ! -name "*.zip" -exec sh -c '
 #  for f do
