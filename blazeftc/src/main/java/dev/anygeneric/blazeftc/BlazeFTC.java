@@ -1,6 +1,9 @@
 package dev.anygeneric.blazeftc;
 
+import com.qualcomm.robotcore.hardware.usb.ftdi.RobotUsbDeviceFtdi;
+
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.internal.usb.exception.RobotUsbException;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -46,6 +49,21 @@ public class BlazeFTC {
     public static native int read(byte[] b, int off, int len, int connectionNumber);//added conn number
     public static native void close();
     public static native void informOfModule(int module, boolean parent, FileDescriptor fd);
+    public static RobotUsbDeviceFtdi usb;
+    public static void writeToUsb(byte[] b) throws RobotUsbException, InterruptedException {
+        usb.write(b);
+    }
+    public static void readFromUsbExact(byte[] bytes, int off, int len) throws RobotUsbException, InterruptedException {
+        int total = 0;
+        while (total < len) {
+            //read(byte[], offset, len, timeout, ignore)
+            int remaining = len - total;
+            int read = usb.read(bytes, total + off, remaining, 30_000, null);
+            if (read < 0)
+                throw new RuntimeException("reading failed");
+            total += read;
+        }
+    }
     public interface ByteHandler {
         byte[] handle(byte[] b);
     }

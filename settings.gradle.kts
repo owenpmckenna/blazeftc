@@ -9,6 +9,7 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        mavenLocal()
     }
 }
 plugins {
@@ -19,9 +20,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        mavenLocal()
     }
 }
 
 rootProject.name = "blazeftc"
 //include(":app")
 include(":blazeftc")
+include(":blazeftc_pedro")

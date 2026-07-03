@@ -5,9 +5,8 @@ plugins {
     signing
 }
 
-
 android {
-    namespace = "dev.anygeneric.blazeftc"
+    namespace = "dev.anygeneric.blazeftc_pedro"
     compileSdk {
         version = release(34)
     }
@@ -40,12 +39,6 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
-
-    sourceSets {
-        getByName("main") {
-            jniLibs.srcDirs("src/main/jniLibs")
-        }
-    }
 }
 
 dependencies {
@@ -59,6 +52,8 @@ dependencies {
 
     compileOnly("org.firstinspires.ftc:RobotCore:[11.0.0,)")
     compileOnly("org.firstinspires.ftc:Hardware:[11.0.0,)")
+    compileOnly("dev.anygeneric:blazeftc:0.1.38")
+    compileOnly("com.pedropathing:ftc:2.0.6")
 }
 
 signing {
@@ -70,7 +65,7 @@ publishing {
     publications {
         create<MavenPublication>("mavenLibrary") {
             groupId = "dev.anygeneric"
-            artifactId = "blazeftc"
+            artifactId = "blazeftc_pedro"
             version = "0.1.38"
             description = "https://github.com/owenpmckenna/blaze_ftc"
 
@@ -85,7 +80,7 @@ publishing {
                 }*/
             }
             pom {
-                name = "BlazeFTC"
+                name = "BlazeFTC Pedro"
                 description = "BlazeFTC allows First Tech Challenge participants to write opmodes in Rust."
                 url = "https://github.com/owenpmckenna/blaze_ftc"
                 licenses {
@@ -112,14 +107,5 @@ publishing {
 
     repositories {
         mavenLocal()
-        /*maven {
-            name = "sonatype"
-            url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-
-            credentials {
-                username = findProperty("sonatypeUsername") as String
-                password = findProperty("sonatypePassword") as String
-            }
-        }*/
     }
 }
