@@ -6,7 +6,6 @@ import com.qualcomm.hardware.lynx.LynxI2cDeviceSynch
 import com.qualcomm.hardware.lynx.LynxModule
 import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.HardwareMap
-import com.qualcomm.robotcore.hardware.I2cDeviceSynchSimple
 import org.firstinspires.ftc.robotcore.external.Telemetry
 import org.firstinspires.ftc.robotcore.external.navigation.VoltageUnit
 import java.io.FileInputStream
@@ -46,11 +45,14 @@ object BlazeDummyPlug {
         }
     }
     @JvmStatic
-    fun inform(it: LynxModule) {
+    fun tryInform(it: LynxModule) : Boolean {
         println("informing of module: " + it.moduleAddress + ": " + it.isParent)
         //note: this doesn't touch hardware. it's preemptive
         val extractor = InterfaceAccessor(it)
+        if (extractor.port == null)
+            return false
         BlazeFTC.informOfModule(it.moduleAddress, it.isParent, extractor.extractUnderlyingFD())
+        return true
     }
     /**
      * You *must* initialize a java pinpoint driver before calling this to set the settings.
@@ -139,15 +141,23 @@ object BlazeDummyPlug {
         module.forEach { it.bulkCachingMode = LynxModule.BulkCachingMode.MANUAL; it.clearBulkCache() }
         module.forEach { println("MODULE ADDRESS: " + it.moduleAddress + ": " + it.isParent) }
 
-        val ctrlHub = module.first { it.isParent }
-        BlazeDummyPlug.inform(ctrlHub)
+        //the first that isParent (not over rs485) and isn't over USB
+        val ctrlHub = module.firstOrNull { it.isParent && tryInform(it) }
+        if (ctrlHub == null)
+            throw IllegalArgumentException("No non-usb parent control hubs!")
         val ctrlHubAccessor = InterfaceAccessor(ctrlHub)
         val fileDescriptor = ctrlHubAccessor.extractUnderlyingFD()
-        val ctrlStreams = BlazeDummyPlug.getClosures(ctrlHubAccessor, ctrlHub.moduleAddress)
+        val ctrlStreams = getClosures(ctrlHubAccessor, ctrlHub.moduleAddress)
 
-        val exHub = module.firstOrNull { !it.isParent }
+        var exHub = module.firstOrNull { !it.isParent }
         if (exHub != null) {
-            BlazeDummyPlug.inform(exHub)
+            //if the exHub is over USB, just drop it and pretend it doesn't exist
+            if (!tryInform(exHub)) {
+                println("discovered ex hub over usb! Ignoring it...")
+                exHub = null
+            } else {
+                println("discovered ex hub over rs485!")
+            }
         }
         var exHubAccessor: InterfaceAccessor? = null
         var exHubStreams: Pair<FileInputStream, FileOutputStream>? = null
