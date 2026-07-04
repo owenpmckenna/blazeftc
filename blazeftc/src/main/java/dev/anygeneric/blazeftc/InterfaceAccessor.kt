@@ -2,6 +2,8 @@ package dev.anygeneric.blazeftc
 
 import com.qualcomm.hardware.lynx.LynxModule
 import com.qualcomm.hardware.lynx.LynxUsbDevice
+import com.qualcomm.robotcore.hardware.DcMotorEx
+import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.usb.RobotUsbDevice
 import com.qualcomm.robotcore.hardware.usb.serial.RobotUsbDeviceTty
 import com.qualcomm.robotcore.hardware.usb.serial.SerialPort
@@ -9,6 +11,7 @@ import java.io.FileDescriptor
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import com.qualcomm.robotcore.hardware.usb.ftdi.RobotUsbDeviceFtdi
+import dev.anygeneric.blazeftc.InterfaceAccessor.ModuleStatus
 import kotlin.io.path.Path
 import kotlin.math.PI
 
@@ -64,4 +67,35 @@ class InterfaceAccessor(val module: LynxModule) {
     //class FakeRobotUSBDevice : RobotUsbDevice {
 
     //}
+    enum class ModuleStatus {
+        Internal,
+        RS485,
+        USB;
+    }
+
+}
+object InterfaceTest {
+    @JvmStatic
+    fun module_status(module: LynxModule): ModuleStatus {
+        val ia = InterfaceAccessor(module)
+        return if (ia.port == null)
+            ModuleStatus.USB//no UART
+        else if (module.isParent)
+            ModuleStatus.Internal//should be a ctrl hub
+        else
+            ModuleStatus.RS485//then it's an RS485 exhub
+    }
+    @JvmStatic
+    public fun motor_status(hardwareMap: HardwareMap, motor: DcMotorEx): ModuleStatus {
+        val hubId = run {
+            val match1 = "(?<=module )[0-9]*".toRegex()
+            val hub1 = motor.controller.connectionInfo
+            match1.find(hub1)!!.value.toInt()
+        }
+        val modules = hardwareMap.getAll(LynxModule::class.java)
+        val module = modules.find { it.moduleAddress == hubId }
+        if (module == null)
+            throw IllegalArgumentException("somehow no hub ids match: $hubId, hb:${modules.map { it.moduleAddress }}")
+        return module_status(module);
+    }
 }

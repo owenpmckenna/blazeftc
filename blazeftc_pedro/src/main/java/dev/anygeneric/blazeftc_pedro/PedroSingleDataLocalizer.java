@@ -1,17 +1,32 @@
 package dev.anygeneric.blazeftc_pedro;
 
+import com.pedropathing.Drivetrain;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.ftc.localization.localizers.PinpointLocalizer;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.localization.Localizer;
 import com.pedropathing.localization.PoseTracker;
 import com.pedropathing.math.Vector;
+import com.pedropathing.ftc.drivetrains.Mecanum;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import dev.anygeneric.blazeftc.BlazeDummyPlug;
+import dev.anygeneric.blazeftc.InterfaceAccessor;
+import dev.anygeneric.blazeftc.InterfaceTest;
 import dev.anygeneric.blazeftc.PositionData;
 
 public class PedroSingleDataLocalizer implements Localizer {
+	public static void setup_with_BulkWriteMecanum(HardwareMap hm, Follower follower, Runnable onNewData) {
+		Drivetrain dt = follower.drivetrain;
+		if (dt instanceof Mecanum) {
+			Mecanum mc = (Mecanum) dt;
+			if (mc.getMotors().stream().allMatch((it) -> InterfaceTest.motor_status(hm, it) == InterfaceAccessor.ModuleStatus.Internal)) {
+				follower.drivetrain = new BulkWriteMecanum(hm, mc);
+			}
+		}
+		setup(follower, onNewData);
+	}
 	public static void setup(Follower follower, Runnable onNewData) {
 		Localizer localizer = follower.poseTracker.getLocalizer();
 		if (!(localizer instanceof PinpointLocalizer)) {

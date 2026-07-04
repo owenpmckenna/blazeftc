@@ -46,6 +46,7 @@ public class BlazeFTC {
     public static native int available();
     public static native void run(int toRun);
     public static native void setMotorPower(int hub, int port, double power);
+    public static native void setMotorPowers(int hub, double power0, double power1, double power2, double power3);
     public static native int read(byte[] b, int off, int len, int connectionNumber);//added conn number
     public static native void close();
     public static native void informOfModule(int module, boolean parent, FileDescriptor fd);
