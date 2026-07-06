@@ -52,7 +52,7 @@ dependencies {
 
     compileOnly("org.firstinspires.ftc:RobotCore:[11.0.0,)")
     compileOnly("org.firstinspires.ftc:Hardware:[11.0.0,)")
-    compileOnly("dev.anygeneric:blazeftc:0.1.42")
+    compileOnly("dev.anygeneric:blazeftc:0.1.44")
     compileOnly("com.pedropathing:ftc:2.0.6")
 }
 
@@ -66,7 +66,7 @@ publishing {
         create<MavenPublication>("mavenLibrary") {
             groupId = "dev.anygeneric"
             artifactId = "blazeftc_pedro"
-            version = "0.1.42"
+            version = "0.1.44"
             description = "https://github.com/owenpmckenna/blaze_ftc"
 
 

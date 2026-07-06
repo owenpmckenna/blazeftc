@@ -59,8 +59,8 @@ object BlazeDummyPlug {
      */
     @JvmStatic
     fun engagePinpointAcceleration(ppd: GoBildaPinpointDriver, acceptor: (PositionData) -> Unit) {
-        val dcr = GoBildaPinpointDriver::class.java.getDeclaredField("deviceClient").also { it.isAccessible = true }
-        val deviceClient = dcr.get(ppd) as LynxI2cDeviceSynch;
+        val dcr = ppd.deviceClient
+        val deviceClient = dcr as LynxI2cDeviceSynch;
         val busRead = LynxI2cDeviceSynch::class.java.getDeclaredField("bus").also { it.isAccessible = true }
         val bus = busRead.getInt(deviceClient)
         val moduleRead = LynxController::class.java.getDeclaredField("module").also { it.isAccessible = true }
