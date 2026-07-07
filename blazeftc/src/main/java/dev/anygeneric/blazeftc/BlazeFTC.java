@@ -50,6 +50,7 @@ public class BlazeFTC {
     public static native int read(byte[] b, int off, int len, int connectionNumber);//added conn number
     public static native void close();
     public static native void informOfModule(int module, boolean parent, FileDescriptor fd);
+    public static native void informOfServoHub(int module, int parent);
     public static RobotUsbDeviceFtdi usb;
     public static void writeToUsb(byte[] b) throws RobotUsbException, InterruptedException {
         usb.write(b);

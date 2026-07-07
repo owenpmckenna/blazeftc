@@ -49,7 +49,9 @@ object BlazeDummyPlug {
         println("informing of module: " + it.moduleAddress + ": " + it.isParent)
         //note: this doesn't touch hardware. it's preemptive
         val extractor = InterfaceAccessor(it)
-        if (extractor.port == null)
+        if (extractor.module_status() == InterfaceAccessor.ModuleStatus.ServoHub)
+            return false
+        if (extractor.module_status() == InterfaceAccessor.ModuleStatus.USB)
             return false
         BlazeFTC.informOfModule(it.moduleAddress, it.isParent, extractor.extractUnderlyingFD())
         return true
@@ -123,7 +125,7 @@ object BlazeDummyPlug {
         BlazeFTC.clearByteHandlers()
     }
     @JvmStatic
-    final fun initializeBlazeFTC(userTelemetry: Telemetry, hardwareMap: HardwareMap) : Telemetry {
+    fun initializeBlazeFTC(userTelemetry: Telemetry, hardwareMap: HardwareMap) : Telemetry {
         BlazeFTC.load()
         val bt = if (BlazeFTC.bt == null) {
             val bt = BlazeFTC.BlazeTelemetry(userTelemetry)
@@ -149,7 +151,7 @@ object BlazeDummyPlug {
         val fileDescriptor = ctrlHubAccessor.extractUnderlyingFD()
         val ctrlStreams = getClosures(ctrlHubAccessor, ctrlHub.moduleAddress)
 
-        var exHub = module.firstOrNull { !it.isParent }
+        var exHub = module.firstOrNull { !it.isParent && it.module_status() != InterfaceAccessor.ModuleStatus.ServoHub }
         if (exHub != null) {
             //if the exHub is over USB, just drop it and pretend it doesn't exist
             if (!tryInform(exHub)) {
@@ -159,6 +161,17 @@ object BlazeDummyPlug {
                 println("discovered ex hub over rs485!")
             }
         }
+
+        for (i in module.filter { it.module_status() == InterfaceAccessor.ModuleStatus.ServoHub }) {
+            //we have to tell Blaze that the exhub is the parent if it exists, so it doesn't try to send too many RS485 packets
+            val through = if (exHub != null) {
+                exHub.moduleAddress
+            } else {
+                ctrlHub.moduleAddress
+            }
+            BlazeFTC.informOfServoHub(i.moduleAddress, through)
+        }
+
         var exHubAccessor: InterfaceAccessor? = null
         var exHubStreams: Pair<FileInputStream, FileOutputStream>? = null
         if (exHub != null) {
@@ -167,7 +180,7 @@ object BlazeDummyPlug {
             if (fileDescriptor == exDescriptor) {
                 //RS485!
             } else {
-                exHubStreams = BlazeDummyPlug.getClosures(exHubAccessor, exHub.moduleAddress)
+                exHubStreams = getClosures(exHubAccessor, exHub.moduleAddress)
             }
         }
 
@@ -190,3 +203,4 @@ object BlazeDummyPlug {
         return bt.ct
     }
 }
+fun LynxModule.module_status() = InterfaceAccessor(this).module_status()

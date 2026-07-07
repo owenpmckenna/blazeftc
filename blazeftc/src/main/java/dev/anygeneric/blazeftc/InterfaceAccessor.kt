@@ -4,16 +4,13 @@ import com.qualcomm.hardware.lynx.LynxModule
 import com.qualcomm.hardware.lynx.LynxUsbDevice
 import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.HardwareMap
-import com.qualcomm.robotcore.hardware.usb.RobotUsbDevice
+import com.qualcomm.robotcore.hardware.configuration.LynxConstants
 import com.qualcomm.robotcore.hardware.usb.serial.RobotUsbDeviceTty
 import com.qualcomm.robotcore.hardware.usb.serial.SerialPort
+import dev.anygeneric.blazeftc.InterfaceAccessor.ModuleStatus
 import java.io.FileDescriptor
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import com.qualcomm.robotcore.hardware.usb.ftdi.RobotUsbDeviceFtdi
-import dev.anygeneric.blazeftc.InterfaceAccessor.ModuleStatus
-import kotlin.io.path.Path
-import kotlin.math.PI
 
 class InterfaceAccessor(val module: LynxModule) {
     //com.qualcomm.robotcore.hardware.usb.ftdi.RobotUsbDeviceFtdi
@@ -70,20 +67,25 @@ class InterfaceAccessor(val module: LynxModule) {
     enum class ModuleStatus {
         Internal,
         RS485,
-        USB;
+        USB,
+        ServoHub;
     }
-
-}
-object InterfaceTest {
-    @JvmStatic
-    fun module_status(module: LynxModule): ModuleStatus {
-        val ia = InterfaceAccessor(module)
-        return if (ia.port == null)
+    fun module_status(): ModuleStatus {
+        return if (module.revProductNumber == LynxConstants.SERVO_HUB_PRODUCT_NUMBER)
+            ModuleStatus.ServoHub
+        else if (port == null)
             ModuleStatus.USB//no UART
         else if (module.isParent)
             ModuleStatus.Internal//should be a ctrl hub
         else
             ModuleStatus.RS485//then it's an RS485 exhub
+    }
+}
+object InterfaceTest {
+    @JvmStatic
+    fun module_status(module: LynxModule): ModuleStatus {
+        val ia = InterfaceAccessor(module)
+        return ia.module_status()
     }
     @JvmStatic
     public fun motor_status(hardwareMap: HardwareMap, motor: DcMotorEx): ModuleStatus {
