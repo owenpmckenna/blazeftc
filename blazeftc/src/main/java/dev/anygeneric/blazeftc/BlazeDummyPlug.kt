@@ -80,10 +80,15 @@ object BlazeDummyPlug {
         BlazeFTC.sendProperty("attachBulkRead$name", numberPackets.toString())
         BlazeFTC.sendProperty("bulkReadCallbackName$name", tempId)
         BlazeFTC.setByteHandler(tempId) { data ->
-            val resp = LynxGetBulkInputDataResponse(hub).also {it.fromPayloadByteArray(data)}
-            val bulk = cons.newInstance(resp, false)
-            bulkData.set(hub, bulk)
-            acceptor()
+            try {
+                val resp = LynxGetBulkInputDataResponse(hub).also { it.fromPayloadByteArray(data) }
+                val bulk = cons.newInstance(resp, false)
+                bulkData.set(hub, bulk)
+                acceptor()
+            } catch (t: Throwable) {
+                t.printStackTrace();
+                println("somehow got error inside of br byte handler $t")
+            }
             byteArrayOf(1)
         }
     }
@@ -104,9 +109,14 @@ object BlazeDummyPlug {
         BlazeFTC.sendProperty("internalPinpointBus", bus.toString())
         BlazeFTC.sendProperty("internalPinpointCallbackName", tempId)
         BlazeFTC.setByteHandler(tempId) {
-            val tmp = PositionData()
-            tmp.handlePinpointData(it)
-            acceptor(tmp)
+            try {
+                val tmp = PositionData()
+                tmp.handlePinpointData(it)
+                acceptor(tmp)
+            } catch (t: Throwable) {
+                t.printStackTrace();
+                println("somehow got error inside of br byte handler $t")
+            }
             byteArrayOf(1)
         }
     }
