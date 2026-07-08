@@ -4,12 +4,14 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver
 import com.qualcomm.hardware.lynx.LynxController
 import com.qualcomm.hardware.lynx.LynxI2cDeviceSynch
 import com.qualcomm.hardware.lynx.LynxModule
+import com.qualcomm.hardware.lynx.commands.core.LynxGetBulkInputDataResponse
 import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.HardwareMap
 import org.firstinspires.ftc.robotcore.external.Telemetry
 import org.firstinspires.ftc.robotcore.external.navigation.VoltageUnit
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.lang.reflect.Constructor
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.absoluteValue
 import kotlin.random.Random
@@ -55,6 +57,34 @@ object BlazeDummyPlug {
             return false
         BlazeFTC.informOfModule(it.moduleAddress, it.isParent, extractor.extractUnderlyingFD())
         return true
+    }
+    /*        let num = robot.get_property(&format!("attachBulkRead{}", ctrl))?
+            .parse().unwrap_or(1);
+        let callback_name = robot.get_property(&format!("bulkReadCallbackName{}", ctrl))?;
+*/
+    fun engageBulkReadAcceleration(hardwareMap: HardwareMap, ctrlHub: Boolean, numberPackets: Int, acceptor: () -> Unit) {
+        val hubType = if (ctrlHub) InterfaceAccessor.ModuleStatus.Internal else InterfaceAccessor.ModuleStatus.RS485
+        val hub = hardwareMap.getAll(LynxModule::class.java)
+            .find { it.module_status() == hubType }
+
+        val cons = LynxModule.BulkData::class.java.getDeclaredConstructor(
+            LynxGetBulkInputDataResponse::class.java,
+            Boolean::class.java
+        );
+        cons.isAccessible = true
+        val bulkData = LynxModule::class.java.getDeclaredField("lastBulkData")
+        bulkData.isAccessible = true
+
+        val tempId = Random.nextInt().absoluteValue.toString()
+        BlazeFTC.sendProperty("attachBulkRead${if (ctrlHub) {"chub"} else {"exhub"}}", numberPackets.toString())
+        BlazeFTC.sendProperty("bulkReadCallbackName", tempId)
+        BlazeFTC.setByteHandler(tempId) { data ->
+            val resp = LynxGetBulkInputDataResponse(hub).also {it.fromPayloadByteArray(data)}
+            val bulk = cons.newInstance(resp, false)
+            bulkData.set(hub, bulk)
+            acceptor()
+            byteArrayOf(1)
+        }
     }
     /**
      * You *must* initialize a java pinpoint driver before calling this to set the settings.

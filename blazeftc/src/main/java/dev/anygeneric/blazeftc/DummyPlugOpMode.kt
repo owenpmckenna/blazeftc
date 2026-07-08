@@ -2,6 +2,7 @@ package dev.anygeneric.blazeftc
 
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
+import com.qualcomm.robotcore.hardware.HardwareMap
 import org.firstinspires.ftc.robotcore.external.Telemetry
 
 abstract class DummyPlugOpMode : LinearOpMode() {
@@ -13,6 +14,9 @@ abstract class DummyPlugOpMode : LinearOpMode() {
     }
     fun engagePinpointAcceleration(ppd: GoBildaPinpointDriver, acceptor: (PositionData) -> Unit) {
         BlazeDummyPlug.engagePinpointAcceleration(ppd, acceptor)
+    }
+    fun engageBulkReadAcceleration(ctrlHub: Boolean, numberPackets: Int, acceptor: () -> Unit) {
+        BlazeDummyPlug.engageBulkReadAcceleration(hardwareMap, ctrlHub, numberPackets, acceptor)
     }
     final fun initializeBlazeFTC(userTelemetry: Telemetry) : Telemetry =
         BlazeDummyPlug.initializeBlazeFTC(telemetry, hardwareMap)
