@@ -28,7 +28,7 @@ class InterfaceAccessor(val module: LynxModule) {
 
     val device = usbDevField.get(module) as LynxUsbDevice
     val port = if (device.robotUsbDevice is RobotUsbDeviceTty) {
-            serialPortField.get(device.robotUsbDevice) as SerialPort
+        serialPortField.get(device.robotUsbDevice) as SerialPort?
         } else {null}
     fun extractUnderlyingFD(): FileDescriptor {
         return fileDescriptorField.get(port) as FileDescriptor
