@@ -76,8 +76,9 @@ object BlazeDummyPlug {
         bulkData.isAccessible = true
 
         val tempId = Random.nextInt().absoluteValue.toString()
-        BlazeFTC.sendProperty("attachBulkRead${if (ctrlHub) {"chub"} else {"exhub"}}", numberPackets.toString())
-        BlazeFTC.sendProperty("bulkReadCallbackName", tempId)
+        val name = if (ctrlHub) {"chub"} else {"exhub"}
+        BlazeFTC.sendProperty("attachBulkRead$name", numberPackets.toString())
+        BlazeFTC.sendProperty("bulkReadCallbackName$name", tempId)
         BlazeFTC.setByteHandler(tempId) { data ->
             val resp = LynxGetBulkInputDataResponse(hub).also {it.fromPayloadByteArray(data)}
             val bulk = cons.newInstance(resp, false)
