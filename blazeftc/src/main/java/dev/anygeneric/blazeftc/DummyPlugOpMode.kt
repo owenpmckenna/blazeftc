@@ -15,7 +15,7 @@ abstract class DummyPlugOpMode : LinearOpMode() {
     fun engagePinpointAcceleration(ppd: GoBildaPinpointDriver, acceptor: (PositionData) -> Unit) {
         BlazeDummyPlug.engagePinpointAcceleration(ppd, acceptor)
     }
-    fun engageBulkReadAcceleration(ctrlHub: Boolean, numberPackets: Int, acceptor: () -> Unit) {
+    fun engageBulkReadAcceleration(ctrlHub: Boolean, numberPackets: Int, acceptor: (ByteArray) -> Unit) {
         BlazeDummyPlug.engageBulkReadAcceleration(hardwareMap, ctrlHub, numberPackets, acceptor)
     }
     final fun initializeBlazeFTC(userTelemetry: Telemetry) : Telemetry =

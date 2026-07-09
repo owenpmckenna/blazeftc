@@ -62,7 +62,7 @@ object BlazeDummyPlug {
             .parse().unwrap_or(1);
         let callback_name = robot.get_property(&format!("bulkReadCallbackName{}", ctrl))?;
 */
-    fun engageBulkReadAcceleration(hardwareMap: HardwareMap, ctrlHub: Boolean, numberPackets: Int, acceptor: () -> Unit) {
+    fun engageBulkReadAcceleration(hardwareMap: HardwareMap, ctrlHub: Boolean, numberPackets: Int, acceptor: (ByteArray) -> Unit) {
         val hubType = if (ctrlHub) InterfaceAccessor.ModuleStatus.Internal else InterfaceAccessor.ModuleStatus.RS485
         val hub = hardwareMap.getAll(LynxModule::class.java)
             .find { it.module_status() == hubType }
@@ -81,10 +81,11 @@ object BlazeDummyPlug {
         BlazeFTC.sendProperty("bulkReadCallbackName$name", tempId)
         BlazeFTC.setByteHandler(tempId) { data ->
             try {
-                val resp = LynxGetBulkInputDataResponse(hub).also { it.fromPayloadByteArray(data) }
+                val resp = LynxGetBulkInputDataResponse(hub)
+                resp.fromPayloadByteArray(data)
                 val bulk = cons.newInstance(resp, false)
                 bulkData.set(hub, bulk)
-                acceptor()
+                acceptor(data)
             } catch (t: Throwable) {
                 t.printStackTrace();
                 println("somehow got error inside of br byte handler $t")
