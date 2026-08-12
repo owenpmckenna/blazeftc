@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.kotlin.android) apply false
     id("io.github.gradle-nexus.publish-plugin") version "1.3.0"
+    `maven-publish`
+    publishing
 }
 
 nexusPublishing {

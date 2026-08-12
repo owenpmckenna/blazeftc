@@ -9,9 +9,9 @@ import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.HardwareMap
 import org.firstinspires.ftc.robotcore.external.Telemetry
 import org.firstinspires.ftc.robotcore.external.navigation.VoltageUnit
+import java.io.FileDescriptor
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.lang.reflect.Constructor
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.absoluteValue
 import kotlin.random.Random
@@ -20,16 +20,16 @@ object BlazeDummyPlug {
     /**
      * This used for logging the first output packet. ignore it.
      */
-    var outUsed = false
+    var outUsed = mutableListOf(false, false)
     /**
      * This used for logging the first input packet. ignore it.
      */
-    var inUsed = false
-    var timesRespondedLargeNumber = 0
+    var inUsed = mutableListOf(false, false)
+    var timesRespondedLargeNumber = mutableListOf(0, 0)
     /**
      * This controls if we give handles to Blaze again. It's atomic because it's used in multiple threads
      */
-    var opened = AtomicBoolean(false)
+    var opened = listOf(AtomicBoolean(false), AtomicBoolean(false))
     @JvmStatic
     fun engageMotorAccel(hardwareMap: HardwareMap) {
         val motors = hardwareMap.getAllNames(DcMotorEx::class.java)
@@ -51,11 +51,15 @@ object BlazeDummyPlug {
         println("informing of module: " + it.moduleAddress + ": " + it.isParent)
         //note: this doesn't touch hardware. it's preemptive
         val extractor = InterfaceAccessor(it)
+        var handFD: FileDescriptor? = extractor.extractUnderlyingFD()
         if (extractor.module_status() == InterfaceAccessor.ModuleStatus.ServoHub)
             return false
-        if (extractor.module_status() == InterfaceAccessor.ModuleStatus.USB)
-            return false
-        BlazeFTC.informOfModule(it.moduleAddress, it.isParent, extractor.extractUnderlyingFD())
+        if (extractor.module_status() == InterfaceAccessor.ModuleStatus.USB) {
+            handFD = null
+            BlazeFTC.ftd = extractor.ftd
+            BlazeFTC.usb = extractor.ftdi
+        }
+        BlazeFTC.informOfModule(it.moduleAddress, it.isParent, handFD)
         return true
     }
     /*        let num = robot.get_property(&format!("attachBulkRead{}", ctrl))?
@@ -65,7 +69,7 @@ object BlazeDummyPlug {
     fun engageBulkReadAcceleration(hardwareMap: HardwareMap, ctrlHub: Boolean, numberPackets: Int, acceptor: (ByteArray) -> Unit) {
         val hubType = if (ctrlHub) InterfaceAccessor.ModuleStatus.Internal else InterfaceAccessor.ModuleStatus.RS485
         val hub = hardwareMap.getAll(LynxModule::class.java)
-            .find { it.module_status() == hubType }
+            .find { it.module_status() == hubType }!!
 
         val cons = LynxModule.BulkData::class.java.getDeclaredConstructor(
             LynxGetBulkInputDataResponse::class.java,
@@ -122,23 +126,24 @@ object BlazeDummyPlug {
         }
     }
     @JvmStatic
-    fun getClosures(accessor: InterfaceAccessor, hwNum: Int, ): Pair<FileInputStream, FileOutputStream> {
+    fun getClosures(accessor: InterfaceAccessor, hwNum: Int, isOnUsbB: Boolean): Pair<FileInputStream, FileOutputStream> {
+        val isOnUsb = if (isOnUsbB) 1 else 0
         //hwNum is ignored except for when there's an RS485 Ex Hub. otherwise it *does not* matter
         return accessor.createFakeStreams(
             {bytes, off, len ->
-                if (!opened.getAndSet(true))
+                if (!opened[isOnUsb].getAndSet(true))
                     open()
-                if (!inUsed) {
-                    Throwable("Note: not an error, input stream called to read $len bytes").printStackTrace()
+                if (!inUsed[isOnUsb]) {
+                    Throwable("Note: not an error, input stream called to read $len bytes usb:$isOnUsbB").printStackTrace()
                     if (len != 1 && len < 250) {
-                        inUsed = true
+                        inUsed[isOnUsb] = true
                     } else if (len >= 250) {
-                        println("responded with all blanks")
+                        println("responded with all blanks usb:$isOnUsbB")
                         (off..<len+off).forEach { bytes[it] = 0 }
                         return@createFakeStreams len
-                    } else if (timesRespondedLargeNumber < 6) {
-                        timesRespondedLargeNumber += 1
-                        println("responded with large number")
+                    } else if (timesRespondedLargeNumber[isOnUsb] < 6) {
+                        timesRespondedLargeNumber[isOnUsb] += 1
+                        println("responded with large number usb:$isOnUsbB")
                         bytes[off] = Byte.MAX_VALUE
                         return@createFakeStreams 1
                         //Return an unnecessarily large byte so we can give them empty data
@@ -147,11 +152,11 @@ object BlazeDummyPlug {
                 BlazeFTC.read(bytes, off, len, hwNum)
             },
             { bytes, off, len ->
-                if (!opened.getAndSet(true))
+                if (!opened[isOnUsb].getAndSet(true))
                     open()
-                if (!outUsed) {
-                    outUsed = true
-                    println("output stream used first time! Printing... ${bytes.joinToString(",") { it.toInt().toString() }}")
+                if (!outUsed[isOnUsb]) {
+                    outUsed[isOnUsb] = true
+                    println("output stream used first time usb:$isOnUsbB! Printing... ${bytes.joinToString(",") { it.toInt().toString() }}")
                 }
                 BlazeFTC.write(bytes.slice(off..<off + len).toByteArray(), hwNum)
             }
@@ -191,14 +196,14 @@ object BlazeDummyPlug {
             throw IllegalArgumentException("No non-usb parent control hubs!")
         val ctrlHubAccessor = InterfaceAccessor(ctrlHub)
         val fileDescriptor = ctrlHubAccessor.extractUnderlyingFD()
-        val ctrlStreams = getClosures(ctrlHubAccessor, ctrlHub.moduleAddress)
+        val ctrlStreams = getClosures(ctrlHubAccessor, ctrlHub.moduleAddress, false)
 
         var exHub = module.firstOrNull { !it.isParent && it.module_status() != InterfaceAccessor.ModuleStatus.ServoHub }
         if (exHub != null) {
             //if the exHub is over USB, just drop it and pretend it doesn't exist
             if (!tryInform(exHub)) {
-                println("discovered ex hub over usb! Ignoring it...")
-                exHub = null
+                println("discovered ex hub over usb! Using it...")
+                //exHub = null
             } else {
                 println("discovered ex hub over rs485!")
             }
@@ -222,7 +227,8 @@ object BlazeDummyPlug {
             if (fileDescriptor == exDescriptor) {
                 //RS485!
             } else {
-                exHubStreams = getClosures(exHubAccessor, exHub.moduleAddress)
+                //USB!
+                exHubStreams = getClosures(exHubAccessor, exHub.moduleAddress, true)
             }
         }
 
@@ -235,9 +241,9 @@ object BlazeDummyPlug {
         }
         voltsChecked = 0
         if (exHubStreams != null) {
-            exHubAccessor!!.replaceStreams(exHubStreams) {
+            exHubAccessor!!.replaceUsbStreams(exHubStreams) {
                 val volts = exHub!!.getInputVoltage(VoltageUnit.VOLTS)
-                println("Checking volts: $volts, check num: $voltsChecked")
+                println("Checking usb volts: $volts, check num: $voltsChecked")
                 voltsChecked++
             }
         }

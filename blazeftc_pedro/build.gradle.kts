@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     `maven-publish`
+    publishing
     signing
 }
 
@@ -66,7 +67,7 @@ publishing {
         create<MavenPublication>("mavenLibrary") {
             groupId = "dev.anygeneric"
             artifactId = "blazeftc_pedro"
-            version = "0.1.44"
+            version = "0.1.45"
             description = "https://github.com/owenpmckenna/blaze_ftc"
 
 
@@ -107,5 +108,20 @@ publishing {
 
     repositories {
         mavenLocal()
+        giteaRepo()
+    }
+}
+fun RepositoryHandler.giteaRepo() : MavenArtifactRepository {
+    return maven {
+        name = "Gitea"
+        url = uri("https://git.anygeneric.dev/api/packages/owenmckenna/maven")
+        credentials(HttpHeaderCredentials::class) {
+            name = "Authorization"
+            value = "token ${providers.gradleProperty("giteaKey").getOrElse("NOKEYFOUND")}"
+        }
+
+        authentication {
+            create<HttpHeaderAuthentication>("header")
+        }
     }
 }

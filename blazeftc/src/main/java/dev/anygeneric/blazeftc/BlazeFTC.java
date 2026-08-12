@@ -3,6 +3,7 @@ package dev.anygeneric.blazeftc;
 import com.qualcomm.robotcore.hardware.usb.ftdi.RobotUsbDeviceFtdi;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.internal.ftdi.FtDevice;
 import org.firstinspires.ftc.robotcore.internal.usb.exception.RobotUsbException;
 
 import java.io.FileDescriptor;
@@ -10,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,15 +54,18 @@ public class BlazeFTC {
     public static native void informOfModule(int module, boolean parent, FileDescriptor fd);
     public static native void informOfServoHub(int module, int parent);
     public static RobotUsbDeviceFtdi usb;
-    public static void writeToUsb(byte[] b) throws RobotUsbException, InterruptedException {
-        usb.write(b);
+    public static FtDevice ftd;
+    public static void writeToUsb(ByteBuffer b, int bytes) throws RobotUsbException, InterruptedException {
+        System.out.println("writing to usb: " + bytes + " bytes");
+        ftd.write(b.array(), 0, bytes);
     }
-    public static void readFromUsbExact(byte[] bytes, int off, int len) throws RobotUsbException, InterruptedException {
+    public static void readFromUsbExact(ByteBuffer bytes, int off, int len) throws RobotUsbException, InterruptedException {
+        System.out.println("reading from usb: " + len + " bytes");
         int total = 0;
         while (total < len) {
             //read(byte[], offset, len, timeout, ignore)
             int remaining = len - total;
-            int read = usb.read(bytes, total + off, remaining, 30_000, null);
+            int read = usb.read(bytes.array(), total + off, remaining, 30_000, null);
             if (read < 0)
                 throw new RuntimeException("reading failed");
             total += read;

@@ -22,6 +22,7 @@ constructor(
     }
 
     fun adjustPower0(power: Double): Double {
+        this.currentPosition
         var power = power
         if (getOperationalDirection0() == DcMotorSimple.Direction.REVERSE) power = -power
         return power

@@ -71,7 +71,7 @@ publishing {
         create<MavenPublication>("mavenLibrary") {
             groupId = "dev.anygeneric"
             artifactId = "blazeftc"
-            version = "0.1.44"
+            version = "0.1.45"
             description = "https://github.com/owenpmckenna/blaze_ftc"
 
 
@@ -121,5 +121,21 @@ publishing {
                 password = findProperty("sonatypePassword") as String
             }
         }*/
+        giteaRepo()
+    }
+}
+
+fun RepositoryHandler.giteaRepo() : MavenArtifactRepository {
+    return maven {
+        name = "Gitea"
+        url = uri("https://git.anygeneric.dev/api/packages/owenmckenna/maven")
+        credentials(HttpHeaderCredentials::class) {
+            name = "Authorization"
+            value = "token ${providers.gradleProperty("giteaKey").getOrElse("NOKEYFOUND")}"
+        }
+
+        authentication {
+            create<HttpHeaderAuthentication>("header")
+        }
     }
 }
