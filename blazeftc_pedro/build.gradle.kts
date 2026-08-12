@@ -67,7 +67,7 @@ publishing {
         create<MavenPublication>("mavenLibrary") {
             groupId = "dev.anygeneric"
             artifactId = "blazeftc_pedro"
-            version = "0.1.45"
+            version = "0.1.46"
             description = "https://github.com/owenpmckenna/blaze_ftc"
 
 
