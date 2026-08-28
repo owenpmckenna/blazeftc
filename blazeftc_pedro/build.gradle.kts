@@ -44,7 +44,7 @@ android {
 
 dependencies {
     //implementation(libs.appcompat)
-    implementation(libs.material)
+    //implementation(libs.material)
     //implementation(libs.core.ktx)
     implementation("androidx.appcompat:appcompat:1.2.0")
     testImplementation(libs.junit)
@@ -54,7 +54,7 @@ dependencies {
     compileOnly("org.firstinspires.ftc:RobotCore:[11.0.0,)")
     compileOnly("org.firstinspires.ftc:Hardware:[11.0.0,)")
     compileOnly(project(":blazeftc"))
-    compileOnly("com.pedropathing:ftc:2.0.6")
+    compileOnly("com.pedropathing:ftc:2.1.2")
 }
 
 signing {
@@ -67,7 +67,7 @@ publishing {
         create<MavenPublication>("mavenLibrary") {
             groupId = "dev.anygeneric"
             artifactId = "blazeftc_pedro"
-            version = "0.1.46"
+            version = "0.1.58"
             description = "https://github.com/owenpmckenna/blaze_ftc"
 
 

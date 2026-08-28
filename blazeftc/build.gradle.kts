@@ -50,7 +50,7 @@ android {
 
 dependencies {
     //implementation(libs.appcompat)
-    implementation(libs.material)
+    //implementation(libs.material)
     //implementation(libs.core.ktx)
     implementation("androidx.appcompat:appcompat:1.2.0")
     testImplementation(libs.junit)
@@ -71,7 +71,7 @@ publishing {
         create<MavenPublication>("mavenLibrary") {
             groupId = "dev.anygeneric"
             artifactId = "blazeftc"
-            version = "0.1.46"
+            version = "0.1.58"
             description = "https://github.com/owenpmckenna/blaze_ftc"
 
 

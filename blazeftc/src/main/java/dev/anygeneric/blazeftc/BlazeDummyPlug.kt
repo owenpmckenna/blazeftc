@@ -101,7 +101,7 @@ object BlazeDummyPlug {
      * You *must* initialize a java pinpoint driver before calling this to set the settings.
      */
     @JvmStatic
-    fun engagePinpointAcceleration(ppd: GoBildaPinpointDriver, acceptor: (PositionData) -> Unit) {
+    fun engagePinpointAcceleration(ppd: GoBildaPinpointDriver, acceptor: (PositionData) -> Unit, frequency: Int = -1) {
         val dcr = ppd.deviceClient
         val deviceClient = dcr as LynxI2cDeviceSynch;
         val busRead = LynxI2cDeviceSynch::class.java.getDeclaredField("bus").also { it.isAccessible = true }
@@ -113,6 +113,9 @@ object BlazeDummyPlug {
         BlazeFTC.sendProperty("internalPinpointHub", if (module.isParent) "hub0" else "hub1")
         BlazeFTC.sendProperty("internalPinpointBus", bus.toString())
         BlazeFTC.sendProperty("internalPinpointCallbackName", tempId)
+        if (frequency != -1) {
+            BlazeFTC.sendProperty("internalPinpointUpdateFreq", frequency.toString())
+        }
         BlazeFTC.setByteHandler(tempId) {
             try {
                 val tmp = PositionData()
@@ -132,7 +135,7 @@ object BlazeDummyPlug {
         return accessor.createFakeStreams(
             {bytes, off, len ->
                 if (!opened[isOnUsb].getAndSet(true))
-                    open()
+                    open(isOnUsbB)
                 if (!inUsed[isOnUsb]) {
                     Throwable("Note: not an error, input stream called to read $len bytes usb:$isOnUsbB").printStackTrace()
                     if (len != 1 && len < 250) {
@@ -153,7 +156,7 @@ object BlazeDummyPlug {
             },
             { bytes, off, len ->
                 if (!opened[isOnUsb].getAndSet(true))
-                    open()
+                    open(isOnUsbB)
                 if (!outUsed[isOnUsb]) {
                     outUsed[isOnUsb] = true
                     println("output stream used first time usb:$isOnUsbB! Printing... ${bytes.joinToString(",") { it.toInt().toString() }}")
@@ -162,14 +165,18 @@ object BlazeDummyPlug {
             }
         )
     }
-    private fun open() {
-        BlazeFTC.initialize(BlazeFTC.bt)//this function tells BlazeFTC to take over hardware
+    private fun open(isUsb: Boolean) {
+        BlazeFTC.initialize(BlazeFTC.bt, isUsb)//this function tells BlazeFTC to take over hardware
         //it will have no effect if it has already been called.
     }
     @JvmStatic
     fun closeBlazeFTC() {
         BlazeFTC.close()
         BlazeFTC.clearByteHandlers()
+    }
+    @JvmStatic
+    fun initializeBlazeFTC(hardwareMap: HardwareMap) {
+        initializeBlazeFTC(NOPTelemetry(), hardwareMap)
     }
     @JvmStatic
     fun initializeBlazeFTC(userTelemetry: Telemetry, hardwareMap: HardwareMap) : Telemetry {
@@ -191,14 +198,14 @@ object BlazeDummyPlug {
         module.forEach { println("MODULE ADDRESS: " + it.moduleAddress + ": " + it.isParent) }
 
         //the first that isParent (not over rs485) and isn't over USB
-        val ctrlHub = module.firstOrNull { it.isParent && tryInform(it) }
+        val ctrlHub = module.firstOrNull { it.module_status() == InterfaceAccessor.ModuleStatus.Internal && tryInform(it) }
         if (ctrlHub == null)
             throw IllegalArgumentException("No non-usb parent control hubs!")
         val ctrlHubAccessor = InterfaceAccessor(ctrlHub)
         val fileDescriptor = ctrlHubAccessor.extractUnderlyingFD()
         val ctrlStreams = getClosures(ctrlHubAccessor, ctrlHub.moduleAddress, false)
 
-        var exHub = module.firstOrNull { !it.isParent && it.module_status() != InterfaceAccessor.ModuleStatus.ServoHub }
+        val exHub = module.firstOrNull { it.module_status() != InterfaceAccessor.ModuleStatus.ServoHub && it.module_status() != InterfaceAccessor.ModuleStatus.Internal }
         if (exHub != null) {
             //if the exHub is over USB, just drop it and pretend it doesn't exist
             if (!tryInform(exHub)) {
@@ -225,8 +232,10 @@ object BlazeDummyPlug {
             exHubAccessor = InterfaceAccessor(exHub)
             val exDescriptor = exHubAccessor.extractUnderlyingFD()
             if (fileDescriptor == exDescriptor) {
+                println("exhub over uart")
                 //RS485!
             } else {
+                println("exhub over usb")
                 //USB!
                 exHubStreams = getClosures(exHubAccessor, exHub.moduleAddress, true)
             }

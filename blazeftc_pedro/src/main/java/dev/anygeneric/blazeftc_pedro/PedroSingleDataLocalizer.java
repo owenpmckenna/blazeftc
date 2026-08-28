@@ -2,7 +2,7 @@ package dev.anygeneric.blazeftc_pedro;
 
 import static org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.normalizeRadians;
 
-import com.pedropathing.Drivetrain;
+import com.pedropathing.drivetrain.Drivetrain;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.ftc.localization.localizers.PinpointLocalizer;
 import com.pedropathing.geometry.Pose;
@@ -37,6 +37,9 @@ public class PedroSingleDataLocalizer implements Localizer {
 		setup(follower, onNewData);
 	}
 	public static void setup(Follower follower, Runnable onNewData) {
+		setup(follower, -1, onNewData);
+	}
+	public static void setup(Follower follower, int frequency, Runnable onNewData) {
 		Localizer localizer = follower.poseTracker.getLocalizer();
 		if (!(localizer instanceof PinpointLocalizer)) {
 			throw new IllegalArgumentException("This only works if you're using a pinpoint.");
@@ -50,7 +53,7 @@ public class PedroSingleDataLocalizer implements Localizer {
 				onNewData.run();
 			}
 			return null;
-		});
+		}, frequency);
 	}
 	public PositionData lastData = new PositionData();
 	public Pose startPose = new Pose();

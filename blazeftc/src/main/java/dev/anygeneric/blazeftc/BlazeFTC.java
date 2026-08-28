@@ -41,7 +41,7 @@ public class BlazeFTC {
     /**
      * order: inform, initialize, write/read
      */
-    public static native void initialize(BlazeTelemetry blazeTelemetry);
+    public static native void initialize(BlazeTelemetry blazeTelemetry, boolean isUsb);
     public static native void write(byte[] bytes, int connectionNumber);
     public static native void gamepad(byte[] gp1, byte[] gp2);
     public static native void sendProperty(String key, String value);
@@ -55,21 +55,28 @@ public class BlazeFTC {
     public static native void informOfServoHub(int module, int parent);
     public static RobotUsbDeviceFtdi usb;
     public static FtDevice ftd;
-    public static void writeToUsb(ByteBuffer b, int bytes) throws RobotUsbException, InterruptedException {
-        System.out.println("writing to usb: " + bytes + " bytes");
-        ftd.write(b.array(), 0, bytes);
+    public static void writeToUsb(byte[] b) throws RobotUsbException, InterruptedException {
+        //System.out.println("writing to usb: " + b.length + " bytes");
+        ftd.write(b, 0, b.length);
     }
-    public static void readFromUsbExact(ByteBuffer bytes, int off, int len) throws RobotUsbException, InterruptedException {
-        System.out.println("reading from usb: " + len + " bytes");
-        int total = 0;
-        while (total < len) {
-            //read(byte[], offset, len, timeout, ignore)
-            int remaining = len - total;
-            int read = usb.read(bytes.array(), total + off, remaining, 30_000, null);
-            if (read < 0)
-                throw new RuntimeException("reading failed");
-            total += read;
+    public static void readFromUsbExact(byte[] bytes, int off, int len) throws RobotUsbException, InterruptedException {
+        //System.out.println("reading from usb: " + len + " bytes");
+        try {
+            int total = 0;
+            while (total < len) {
+                //read(byte[], offset, len, timeout, ignore)
+                int remaining = len - total;
+                int read = usb.read(bytes, total + off, remaining, 30_000, null);
+                if (read < 0)
+                    throw new RuntimeException("reading failed");
+                total += read;
+            }
+        } catch (Throwable t) {
+            System.out.println("error in readFromUsbExact");
+            t.printStackTrace();
+            throw t;
         }
+
     }
     public interface ByteHandler {
         byte[] handle(byte[] b);
@@ -107,19 +114,23 @@ public class BlazeFTC {
             telemetry = tele;
         }
         public void update() {
-            if (ct != null) {
+            if (ct != null && telemetry != null
+            ) {
                 ct.updateToTelemetry(telemetry);
             }
             telemetry.update();
         }
         public void addData(String name, Object data) {
-            telemetry.addData(name, data);
+            if (telemetry != null)
+                telemetry.addData(name, data);
         }
         public void addData(String name, long data) {
-            telemetry.addData(name, data);
+            if (telemetry != null)
+                telemetry.addData(name, data);
         }
         public void addData(String name, double data) {
-            telemetry.addData(name, data);
+            if (telemetry != null)
+                telemetry.addData(name, data);
         }
     }
 }

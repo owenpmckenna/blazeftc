@@ -18,6 +18,10 @@ abstract class DummyPlugOpMode : LinearOpMode() {
     fun engageBulkReadAcceleration(ctrlHub: Boolean, numberPackets: Int, acceptor: (ByteArray) -> Unit) {
         BlazeDummyPlug.engageBulkReadAcceleration(hardwareMap, ctrlHub, numberPackets, acceptor)
     }
+    /*this one has no telemetry, so use if my telemetry was causing problems*/
+    final fun initializeBlazeFTC() {
+        BlazeDummyPlug.initializeBlazeFTC(hardwareMap)
+    }
     final fun initializeBlazeFTC(userTelemetry: Telemetry) : Telemetry =
         BlazeDummyPlug.initializeBlazeFTC(telemetry, hardwareMap)
     fun runBlazeFTC(toRun: Int) {
