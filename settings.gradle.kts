@@ -28,4 +28,5 @@ rootProject.name = "blazeftc"
 //include(":app")
 include(":blazeftc")
 include(":blazeftc_pedro")
+include(":blazeftc_pedro3")
 include(":overplay_backend")

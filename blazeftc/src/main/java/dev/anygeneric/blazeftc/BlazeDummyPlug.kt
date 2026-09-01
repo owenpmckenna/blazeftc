@@ -189,7 +189,7 @@ object BlazeDummyPlug {
         } else {
             BlazeFTC.bt.ct.clearAll()
             BlazeFTC.bt.telemetry.clearAll()
-            BlazeFTC.bt
+            return BlazeFTC.bt.ct
         }
 
         val module = hardwareMap.getAll(LynxModule::class.java)
