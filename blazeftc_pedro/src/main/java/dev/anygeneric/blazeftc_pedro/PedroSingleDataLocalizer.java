@@ -21,7 +21,7 @@ import dev.anygeneric.blazeftc.InterfaceTest;
 import dev.anygeneric.blazeftc.PositionData;
 
 public class PedroSingleDataLocalizer implements Localizer {
-	public static void setup_with_BulkWriteMecanum(HardwareMap hm, Follower follower, Runnable onNewData) {
+	public static void addBulkWriteMecanum(HardwareMap hm, Follower follower, Runnable onNewData) {
 		Drivetrain dt = follower.drivetrain;
 		if (dt instanceof Mecanum) {
 			Mecanum mc = (Mecanum) dt;
@@ -34,12 +34,11 @@ public class PedroSingleDataLocalizer implements Localizer {
 				System.out.println("Motors not all on ctrl hub, bulk not used!");
 			}
 		}
-		setup(follower, onNewData);
 	}
 	public static void setup(Follower follower, Runnable onNewData) {
-		setup(follower, -1, onNewData);
+		setupWithFrequency(follower, -1, onNewData);
 	}
-	public static void setup(Follower follower, int frequency, Runnable onNewData) {
+	public static void setupWithFrequency(Follower follower, int frequency, Runnable onNewData) {
 		Localizer localizer = follower.poseTracker.getLocalizer();
 		if (!(localizer instanceof PinpointLocalizer)) {
 			throw new IllegalArgumentException("This only works if you're using a pinpoint.");
@@ -47,13 +46,13 @@ public class PedroSingleDataLocalizer implements Localizer {
 		GoBildaPinpointDriver ppd = ((PinpointLocalizer)localizer).getPinpoint();
 		PedroSingleDataLocalizer sdl = new PedroSingleDataLocalizer();
 		follower.poseTracker = new PoseTracker(sdl);
-		BlazeDummyPlug.engagePinpointAcceleration(ppd, (pos) -> {
+		BlazeDummyPlug.engagePinpointAccelerationAtFrequency(ppd, frequency, (pos) -> {
 			sdl.lastData = pos;
 			if (onNewData != null) {
 				onNewData.run();
 			}
 			return null;
-		}, frequency);
+		});
 	}
 	public PositionData lastData = new PositionData();
 	public Pose startPose = new Pose();

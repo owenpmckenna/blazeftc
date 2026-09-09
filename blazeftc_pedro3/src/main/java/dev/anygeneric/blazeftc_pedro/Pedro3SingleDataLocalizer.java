@@ -37,8 +37,10 @@ public class Pedro3SingleDataLocalizer implements Localizer {
 	@Override
 	public void reset() { /*no-op*/ }
 
-
-	public static void setup(Follower follower, int frequency, Runnable onNewData) {
+	public static void setup(Follower follower, Runnable onNewData) {
+		setupAtFrequency(follower, -1, onNewData);
+	}
+	public static void setupAtFrequency(Follower follower, int frequency, Runnable onNewData) {
 		Localizer localizer = follower.localizer;
 		if (!(localizer instanceof Pinpoint)) {
 			throw new IllegalArgumentException("This only works if you're using a pinpoint.");
@@ -53,7 +55,7 @@ public class Pedro3SingleDataLocalizer implements Localizer {
 			Field f1 = Follower.class.getField("localizer");
 			f1.setAccessible(true);
 			f1.set(follower, sdl);
-			BlazeDummyPlug.engagePinpointAcceleration(ppd, (pos) -> {
+			BlazeDummyPlug.engagePinpointAccelerationAtFrequency(ppd, frequency, (pos) -> {
 				Pose pose = new Pose(pos.getXPosition(), pos.getYPosition(), pos.getDirection());
 				Velocity vel = new Velocity(pos.getXVelocity(), pos.getYVelocity(), pos.getAngVelocity());
 				sdl.motionState = MotionState.ofVelocity(pose, vel);
@@ -61,7 +63,7 @@ public class Pedro3SingleDataLocalizer implements Localizer {
 					onNewData.run();
 				}
 				return null;
-			}, frequency);
+			});
 		} catch (Throwable t) {
 			throw new RuntimeException(t);
 		}

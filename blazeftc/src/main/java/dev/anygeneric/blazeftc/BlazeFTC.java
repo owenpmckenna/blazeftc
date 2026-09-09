@@ -91,8 +91,9 @@ public class BlazeFTC {
         if (bh != null) {
             return bh.handle(bytes);
         }
-        return new byte[] {};//empty array idk. probably not the right call
+        return new byte[] {};
     }
+    ////empty array idk. probably not the right call
     public static OutputStream os = null;
     public static InputStream is = null;
     public static void closeStreams() {

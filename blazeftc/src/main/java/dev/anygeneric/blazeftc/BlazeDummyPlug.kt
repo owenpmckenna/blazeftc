@@ -66,10 +66,28 @@ object BlazeDummyPlug {
             .parse().unwrap_or(1);
         let callback_name = robot.get_property(&format!("bulkReadCallbackName{}", ctrl))?;
 */
-    fun engageBulkReadAcceleration(hardwareMap: HardwareMap, ctrlHub: Boolean, numberPackets: Int, acceptor: (ByteArray) -> Unit) {
-        val hubType = if (ctrlHub) InterfaceAccessor.ModuleStatus.Internal else InterfaceAccessor.ModuleStatus.RS485
-        val hub = hardwareMap.getAll(LynxModule::class.java)
-            .find { it.module_status() == hubType }!!
+    /**
+     * This function will be called each time Blaze has more data for you. numberPackets should be either 1 or 2, anything higher will break things.
+     * NP 1 should get you ~500 hz, NP 2 gives ~900 hz. NP 2 cannot be used on RS485 hubs.
+     */
+	fun engageBulkReadAcceleration(hardwareMap: HardwareMap, hub: Hub, numberPackets: Int = 1, acceptor: () -> Unit) {
+        if (hub == Hub.ExHub && numberPackets > 1 && !hadUSBFlag) {
+            println("WARNING: maybe tried to engage fast bulk reads on RS485 hub (maybe)")
+        }
+        engageBulkReadAcceleration_(hardwareMap, hub, numberPackets = numberPackets, -1, acceptor)
+    }
+
+    /**
+     * Do not call this. It's broken. I warned you. I'm working on it.
+     */
+    @Deprecated(message = "Not \"deprecated\" per se but should not be called")
+    fun engageBulkReadAccelerationAtFrequency(hardwareMap: HardwareMap, hub: Hub, frequencyMicros: Int, acceptor: () -> Unit) {
+        engageBulkReadAcceleration_(hardwareMap, hub, numberPackets = 1, frequencyMicros, acceptor)
+    }
+    private fun engageBulkReadAcceleration_(hardwareMap: HardwareMap, hub: Hub, numberPackets: Int = 1, freq: Int = -1, acceptor: () -> Unit) {
+        val hubType = if (hub == Hub.CtrlHub) listOf(InterfaceAccessor.ModuleStatus.Internal) else listOf(InterfaceAccessor.ModuleStatus.RS485, InterfaceAccessor.ModuleStatus.USB)
+        val module = hardwareMap.getAll(LynxModule::class.java)
+            .find { hubType.contains(it.module_status()) }!!
 
         val cons = LynxModule.BulkData::class.java.getDeclaredConstructor(
             LynxGetBulkInputDataResponse::class.java,
@@ -80,16 +98,19 @@ object BlazeDummyPlug {
         bulkData.isAccessible = true
 
         val tempId = Random.nextInt().absoluteValue.toString()
-        val name = if (ctrlHub) {"chub"} else {"exhub"}
+        val name = if (hub == Hub.CtrlHub) {"chub"} else {"exhub"}
         BlazeFTC.sendProperty("attachBulkRead$name", numberPackets.toString())
         BlazeFTC.sendProperty("bulkReadCallbackName$name", tempId)
+        if (freq > 0) {
+            BlazeFTC.sendProperty("bulkReadUpdateFreq$name", freq.toString())
+        }
         BlazeFTC.setByteHandler(tempId) { data ->
             try {
-                val resp = LynxGetBulkInputDataResponse(hub)
+                val resp = LynxGetBulkInputDataResponse(module)
                 resp.fromPayloadByteArray(data)
                 val bulk = cons.newInstance(resp, false)
-                bulkData.set(hub, bulk)
-                acceptor(data)
+                bulkData.set(module, bulk)
+                acceptor()
             } catch (t: Throwable) {
                 t.printStackTrace();
                 println("somehow got error inside of br byte handler $t")
@@ -99,9 +120,14 @@ object BlazeDummyPlug {
     }
     /**
      * You *must* initialize a java pinpoint driver before calling this to set the settings.
+     * I think you can call the frequency version, but personally I wouldn't.
      */
     @JvmStatic
-    fun engagePinpointAcceleration(ppd: GoBildaPinpointDriver, acceptor: (PositionData) -> Unit, frequency: Int = -1) {
+    fun engagePinpointAcceleration(ppd: GoBildaPinpointDriver, acceptor: (PositionData) -> Unit) {
+        engagePinpointAccelerationAtFrequency(ppd, -1, acceptor)
+    }
+    @JvmStatic
+    fun engagePinpointAccelerationAtFrequency(ppd: GoBildaPinpointDriver, frequency: Int, acceptor: (PositionData) -> Unit) {
         val dcr = ppd.deviceClient
         val deviceClient = dcr as LynxI2cDeviceSynch;
         val busRead = LynxI2cDeviceSynch::class.java.getDeclaredField("bus").also { it.isAccessible = true }
@@ -250,6 +276,7 @@ object BlazeDummyPlug {
         }
         voltsChecked = 0
         if (exHubStreams != null) {
+            hadUSBFlag = true
             exHubAccessor!!.replaceUsbStreams(exHubStreams) {
                 val volts = exHub!!.getInputVoltage(VoltageUnit.VOLTS)
                 println("Checking usb volts: $volts, check num: $voltsChecked")
@@ -259,5 +286,6 @@ object BlazeDummyPlug {
 
         return bt.ct
     }
+    private var hadUSBFlag = false
 }
 fun LynxModule.module_status() = InterfaceAccessor(this).module_status()
